@@ -1,0 +1,76 @@
+# 再生速度変更 AviSynth スクリプトジェネレータ $VERSION$ ( $GITHASH$ ) by oov
+
+# 優先的に使用するデコーダー
+#   使えそうなデコーダーの例
+#   av1_cuvid,hevc_cuvid,h264_cuvid,vp9_cuvid,vp8_cuvid,vc1_cuvid,mpeg4_cuvid,mpeg2_cuvid,mpeg1_cuvid,mjpeg_cuvid,av1_qsv,hevc_qsv,h264_qsv,vp9_qsv,vp8_qsv,vc1_qsv,mpeg4_qsv,mpeg2_qsv,mpeg1_qsv,mjpeg_qsv"
+decoder = "hevc_cuvid,h264_cuvid,hevc_qsv,h264_qsv,hevc,h264"
+
+# 音声周りの調整項目
+# 再生速度を遅くするときは小さな値にするといいかも（AviSynth でのデフォルト値は 100）
+seq = 10
+
+# seq を小さな値にするときは下げるといいかも（AviSynth でのデフォルト値は 8）
+overlap = 4
+
+# 大抵の場合は変えなくていい（AviSynth でのデフォルト値は 22）
+seekwnd = 22
+
+# 4の倍数で指定、大抵の場合は変えなくていい（AviSynth でのデフォルト値は 64）
+aa = 64
+
+# 設定ここまで -----------------------------------------------------------------------
+
+function TryLSMASH(string path, string "decoder", int "vtrack", int "atrack") {
+  decoder = Default(decoder, "")
+  vtrack = Default(vtrack, 0)
+  atrack = Default(atrack, 0)
+  try {
+    has_audio = true
+    a = LSMASHAudioSource(path, track=atrack, decoder=decoder)
+  } catch(err) {
+    has_audio = false
+  }
+  v = LSMASHVideoSource(path, track=vtrack, decoder=decoder)
+  return (has_audio) ? AudioDub(v, a) : v
+}
+
+function TryLWLibav(string path, string "decoder", int "vtrack", int "atrack") {
+  decoder = Default(decoder, "")
+  vtrack = Default(vtrack, -1)
+  atrack = Default(atrack, -1)
+  try {
+    has_audio = true
+    a = LWLibavAudioSource(path, stream_index=atrack, decoder=decoder)
+  } catch(err) {
+    has_audio = false
+  }
+  v = LWLibavVideoSource(path, stream_index=vtrack, decoder=decoder)
+  return (has_audio) ? AudioDub(v, a) : v
+}
+
+function TryFFmpegSource(string path, string "decoder", int "vtrack", int "atrack") {
+  vtrack = Default(vtrack, -1)
+  atrack = Default(atrack, -1)
+  try {
+    has_audio = true
+    a = FFAudioSource(path, track=atrack)
+  } catch(err) {
+    has_audio = false
+  }
+  v = FFVideoSource(path, track=vtrack)
+  return (has_audio) ? AudioDub(v, a) : v
+}
+
+try {
+  clip = TryLSMASH(path, decoder=decoder)
+} catch(err) {
+  try {
+    clip = TryLWLibav(path, decoder=decoder)
+  } catch(err) {
+    clip = TryFFmpegSource(path)
+  }
+}
+
+clip = (clip.HasAudio()) ? clip.TimeStretch(tempo=100.0*speed, sequence=seq, SeekWindow=seekwnd, Overlap=overlap, aa=aa) : clip
+clip = (clip.HasVideo()) ? clip.AssumeFPS(clip.Framerate()*speed).ChangeFPS(clip.Framerate(), false) : clip
+clip

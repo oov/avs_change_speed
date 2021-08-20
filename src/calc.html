@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="ja">
+<meta charset="utf-8">
+<style>
+dt {
+  color: #333;
+  font-size: 80%;
+  margin-bottom: 0.5em;
+}
+dd {
+  margin: 0 0 1em 1em;
+}
+input[type=number],
+input[type=text] {
+  padding: 4px;
+}
+input[readonly] {
+  background-color: #ddd;
+}
+</style>
+<title>フレーム計算機</title>
+<h1>フレーム計算機</h1>
+<dl>
+  <dt>再生速度</dt>
+  <dd><input type="number" name="speed" value="2" min="0.000" max="256"></dd>
+  <dt>元動画のフレーム数から計算</dt><dd><input type="number" name="to" value="0"> → 速度変更後は <input type="text" name="to-result" readonly></dd>
+  <dt>速度変更後のフレーム数から計算</dt><dd><input type="number" name="from" value="0"> → 元の動画では <input type="text" name="from-result" readonly></dd>
+</dl>
+<script>
+const speedElem = document.querySelector('input[name="speed"]');
+const toElem = document.querySelector('input[name="to"]');
+const toResultElem = document.querySelector('input[name="to-result"]');
+const fromElem = document.querySelector('input[name="from"]');
+const fromResultElem = document.querySelector('input[name="from-result"]');
+const update = () => {
+  const speed = speedElem.valueAsNumber;
+  toResultElem.value = Math.floor(toElem.valueAsNumber / speed);
+  fromResultElem.value = Math.floor(fromElem.valueAsNumber * speed);
+};
+[speedElem, toElem, fromElem].forEach(elem => elem.addEventListener('input', e => update()));
+update();
+</script>
+</html>
